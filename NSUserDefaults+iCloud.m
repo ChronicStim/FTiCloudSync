@@ -38,7 +38,7 @@ NSString* const iCloudBlacklistRegex = @"(^!|^Apple|^ATOutputLevel|Hockey|DateOf
 
 + (void)updateFromiCloud:(NSNotification*)notificationObject {
 	if ([[[notificationObject userInfo] objectForKey:NSUbiquitousKeyValueStoreChangeReasonKey] intValue] == NSUbiquitousKeyValueStoreQuotaViolationChange) {
-		NSLog(@"NSUbiquitousKeyValueStoreQuotaViolationChange");
+		DDLogError(@"NSUbiquitousKeyValueStoreQuotaViolationChange");
 	}
 	NSMutableArray *changedKeys = [NSMutableArray array];
 	NSMutableArray *removedKeys = nil;
@@ -74,6 +74,7 @@ NSString* const iCloudBlacklistRegex = @"(^!|^Apple|^ATOutputLevel|Hockey|DateOf
 	if (!equal && ![key isMatchedByRegex:iCloudBlacklistRegex] && [NSUbiquitousKeyValueStore defaultStore]) {
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
 			[[NSUbiquitousKeyValueStore defaultStore] setObject:object forKey:key];
+            DDLogInfo(@"Just told NSUbiquitousKeyValueStore to setObject: %@ forKey: %@",object,key);
 		});
 	}
 }
@@ -85,6 +86,7 @@ NSString* const iCloudBlacklistRegex = @"(^!|^Apple|^ATOutputLevel|Hockey|DateOf
 	if (exists && ![key isMatchedByRegex:iCloudBlacklistRegex] && [NSUbiquitousKeyValueStore defaultStore]) {
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
 			[[NSUbiquitousKeyValueStore defaultStore] removeObjectForKey:key];
+            DDLogInfo(@"Just told NSUbiquitousKeyValueStore to removeObjectForKey: %@",key);
 		});
 	}
 }
@@ -94,7 +96,7 @@ NSString* const iCloudBlacklistRegex = @"(^!|^Apple|^ATOutputLevel|Hockey|DateOf
 	if ([NSUbiquitousKeyValueStore defaultStore]) {
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
 			if(![[NSUbiquitousKeyValueStore defaultStore] synchronize]) {
-				NSLog(@"iCloud sync failed");
+				DDLogError(@"iCloud sync failed");
 			}
 		});
 	}
