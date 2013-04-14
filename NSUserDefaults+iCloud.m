@@ -18,7 +18,8 @@
 NSString* const FTiCloudSyncDidUpdateNotification = @"FTiCloudSyncDidUpdateNotification";
 NSString* const FTiCloudSyncChangedKeys = @"changedKeys";
 NSString* const FTiCloudSyncRemovedKeys = @"removedKeys";
-NSString* const iCloudBlacklistRegex = @"(^!|^Apple|^ATOutputLevel|Hockey|DateOfVersionInstallation|^MF|^NS|Quincy|^BIT|^TV|UsageTime|^Web|preferredLocaleIdentifier|^crittercism|^current_device|^kAppirater|^kStatKey)";
+NSString* const iCloudBlacklistRegex = @"(^!|^Apple|^ATOutputLevel|Hockey|DateOfVersionInstallation|^MF|^NS|Quincy|^BIT|^TV|UsageTime|^Web|preferredLocaleIdentifier|^crittercism|^current_device|^kAppirater|^kStatKey|^dropbox)";
+NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 
 @implementation NSUserDefaults(Additions)
 
@@ -71,7 +72,7 @@ NSString* const iCloudBlacklistRegex = @"(^!|^Apple|^ATOutputLevel|Hockey|DateOf
 - (void)my_setObject:(id)object forKey:(NSString *)key {
 	BOOL equal = [[self objectForKey:key] isEqual:object];
 	[self my_setObject:object forKey:key];
-	if (!equal && ![key isMatchedByRegex:iCloudBlacklistRegex] && [NSUbiquitousKeyValueStore defaultStore]) {
+	if (!equal && [key isMatchedByRegex:iCloudGreenlistRegex] && [NSUbiquitousKeyValueStore defaultStore]) {
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
 			[[NSUbiquitousKeyValueStore defaultStore] setObject:object forKey:key];
             DDLogInfo(@"Just told NSUbiquitousKeyValueStore to setObject: %@ forKey: %@",object,key);
@@ -83,7 +84,7 @@ NSString* const iCloudBlacklistRegex = @"(^!|^Apple|^ATOutputLevel|Hockey|DateOf
 	BOOL exists = !![self objectForKey:key];
 	[self my_removeObjectForKey:key]; // call original implementation
 	
-	if (exists && ![key isMatchedByRegex:iCloudBlacklistRegex] && [NSUbiquitousKeyValueStore defaultStore]) {
+	if (exists && [key isMatchedByRegex:iCloudGreenlistRegex] && [NSUbiquitousKeyValueStore defaultStore]) {
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
 			[[NSUbiquitousKeyValueStore defaultStore] removeObjectForKey:key];
             DDLogInfo(@"Just told NSUbiquitousKeyValueStore to removeObjectForKey: %@",key);
