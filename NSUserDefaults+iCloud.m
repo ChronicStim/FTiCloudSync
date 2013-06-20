@@ -18,7 +18,7 @@
 NSString* const FTiCloudSyncDidUpdateNotification = @"FTiCloudSyncDidUpdateNotification";
 NSString* const FTiCloudSyncChangedKeys = @"changedKeys";
 NSString* const FTiCloudSyncRemovedKeys = @"removedKeys";
-NSString* const iCloudBlacklistRegex = @"(^!|^Apple|^ATOutputLevel|Hockey|DateOfVersionInstallation|^MF|^NS|Quincy|^BIT|^TV|UsageTime|^Web|preferredLocaleIdentifier|^crittercism|^current_device|^kAppirater|^kStatKey|^dropbox)";
+NSString* const iCloudBlacklistRegex = @"(^!|^Apple|^ATOutputLevel|Hockey|DateOfVersionInstallation|^MF|^NS|Quincy|^BIT|^TV|UsageTime|^Web|preferredLocaleIdentifier|^crittercism|^current_device|^kAppirater|^kStatKey|^dropbox|^kDropboxDBSync|^CPTSyncActionController)";
 NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 
 @implementation NSUserDefaults(Additions)
