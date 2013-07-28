@@ -48,7 +48,7 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 		NSDictionary *dict = [[NSUbiquitousKeyValueStore defaultStore] dictionaryRepresentation];
 
 		[dict enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
-			if (![key isMatchedByRegex:iCloudBlacklistRegex] && ![[defaults valueForKey:key] isEqual:obj]) {
+			if ([key isMatchedByRegex:iCloudGreenlistRegex] && ![[defaults valueForKey:key] isEqual:obj]) {
 				[defaults my_setObject:obj forKey:key]; // call original implementation
 				[changedKeys addObject:key];
 			}
@@ -57,7 +57,7 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 		removedKeys = [NSMutableArray arrayWithArray:[defaults dictionaryRepresentation].allKeys];
 		[removedKeys removeObjectsInArray:dict.allKeys];
 		[removedKeys enumerateObjectsUsingBlock:^(id key, NSUInteger idx, BOOL *stop) {
-			if (![key isMatchedByRegex:iCloudBlacklistRegex]) {
+			if ([key isMatchedByRegex:iCloudGreenlistRegex]) {
 				[defaults my_removeObjectForKey:key]; // non-swizzled/original implementation
 			}
 		}];
