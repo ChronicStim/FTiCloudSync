@@ -70,6 +70,10 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 }
 
 - (void)my_setObject:(id)object forKey:(NSString *)key {
+    if (nil == key) {
+        DDLogError(@"Warning: A key for a NSUserDefault must never be nil.");
+        return;
+    }
 	BOOL equal = [[self objectForKey:key] isEqual:object];
 	[self my_setObject:object forKey:key];
 	if (!equal && [key isMatchedByRegex:iCloudGreenlistRegex] && [NSUbiquitousKeyValueStore defaultStore]) {
@@ -81,6 +85,10 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 }
 
 - (void)my_removeObjectForKey:(NSString *)key {
+    if (nil == key) {
+        DDLogError(@"Warning: A key for a NSUserDefault must never be nil.");
+        return;
+    }
 	BOOL exists = !![self objectForKey:key];
 	[self my_removeObjectForKey:key]; // call original implementation
 	
