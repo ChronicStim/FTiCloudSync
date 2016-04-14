@@ -71,7 +71,7 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 
 - (void)my_setObject:(id)object forKey:(NSString *)key {
     if (nil == key) {
-        DDLogError(@"Warning: A key for a NSUserDefault must never be nil.");
+        DDLogError(@"Warning: A key for a NSUserDefault must never be nil. Key was nil for object: (%@)%@", NSStringFromClass([object class]),[object debugDescription]);
         return;
     }
 	BOOL equal = [[self objectForKey:key] isEqual:object];
