@@ -24,8 +24,10 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 @implementation NSUserDefaults(Additions)
 
 #pragma mark - Swizzling to get a hook for iCloud
-+(void)initialize {
++(void)load {
 	if(NSClassFromString(@"NSUbiquitousKeyValueStore")) { // is iOS 5?
+        CLSLog(@"[NSUserDefaults] Start +load swizzle methods");
+        DDLogVerbose(@"Starting to swizzle NSUserDefault methods");
 		Swizzle([NSUserDefaults class], @selector(setObject:forKey:), @selector(my_setObject:forKey:));
 		Swizzle([NSUserDefaults class], @selector(removeObjectForKey:), @selector(my_removeObjectForKey:));
 		Swizzle([NSUserDefaults class], @selector(synchronize), @selector(my_synchronize));
@@ -38,8 +40,9 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 }
 
 + (void)updateFromiCloud:(NSNotification*)notificationObject {
+    CLSLog(@"Start +updateFromiCloud: with notificationObject: (%@) %@",[notificationObject class],[notificationObject debugDescription]);
 	if ([[[notificationObject userInfo] objectForKey:NSUbiquitousKeyValueStoreChangeReasonKey] intValue] == NSUbiquitousKeyValueStoreQuotaViolationChange) {
-		DDLogError(@"NSUbiquitousKeyValueStoreQuotaViolationChange");
+		CPT_LOGError(@"NSUbiquitousKeyValueStoreQuotaViolationChange");
 	}
 	NSMutableArray *changedKeys = [NSMutableArray array];
 	NSMutableArray *removedKeys = nil;
@@ -70,42 +73,57 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 }
 
 - (void)my_setObject:(id)object forKey:(NSString *)key {
+    
+    CLSLog(@"[NSUserDefaults] Start my_setObject: %@ forKey %@", [object description], key);
+    DDLogVerbose(@"setObject: %@ forKey: %@", [object description], key);
+
     if (nil == key) {
-        DDLogError(@"Warning: A key for a NSUserDefault must never be nil. Key was nil for object: (%@)%@", NSStringFromClass([object class]),[object debugDescription]);
+        CLSLog(@"[NSUserDefaults] Error: Key for my_setObject:forKey: was nil for object: (%@)%@", NSStringFromClass([object class]),[object debugDescription]);
+        CPT_LOGError(@"Warning: A key for a NSUserDefault must never be nil. Key was nil for object: (%@)%@", NSStringFromClass([object class]),[object debugDescription]);
         return;
     }
+
 	BOOL equal = [[self objectForKey:key] isEqual:object];
-	[self my_setObject:object forKey:key];
+	[self my_setObject:object forKey:key]; // call original implementation
 	if (!equal && [key isMatchedByRegex:iCloudGreenlistRegex] && [NSUbiquitousKeyValueStore defaultStore]) {
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
 			[[NSUbiquitousKeyValueStore defaultStore] setObject:object forKey:key];
+            CLSLog(@"Just told NSUbiquitousKeyValueStore to setObject: %@ forKey: %@",object,key);
             DDLogInfo(@"Just told NSUbiquitousKeyValueStore to setObject: %@ forKey: %@",object,key);
 		});
 	}
 }
 
 - (void)my_removeObjectForKey:(NSString *)key {
+    
+    CLSLog(@"[NSUserDefaults] Start my_removeObjectForKey: %@", key);
+    DDLogVerbose(@"RemoveObjectForKey: %@",key);
+    
     if (nil == key) {
-        DDLogError(@"Warning: A key for a NSUserDefault must never be nil.");
+        CLSLog(@"[NSUserDefaults] Error: Key for my_removeObjectForKey: was nil.");
+        CPT_LOGError(@"Warning: A key for a NSUserDefault must never be nil.");
         return;
     }
+    
 	BOOL exists = !![self objectForKey:key];
 	[self my_removeObjectForKey:key]; // call original implementation
 	
 	if (exists && [key isMatchedByRegex:iCloudGreenlistRegex] && [NSUbiquitousKeyValueStore defaultStore]) {
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
 			[[NSUbiquitousKeyValueStore defaultStore] removeObjectForKey:key];
+            CLSLog(@"Just told NSUbiquitousKeyValueStore to removeObjectForKey: %@",key);
             DDLogInfo(@"Just told NSUbiquitousKeyValueStore to removeObjectForKey: %@",key);
 		});
 	}
 }
 
 - (void)my_synchronize {
+    CLSLog(@"[NSUserDefaults] Start my_synchronize");
 	[self my_synchronize]; // call original implementation
 	if ([NSUbiquitousKeyValueStore defaultStore]) {
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
 			if(![[NSUbiquitousKeyValueStore defaultStore] synchronize]) {
-				DDLogError(@"iCloud sync failed");
+				CPT_LOGError(@"iCloud sync failed");
 			}
 		});
 	}
