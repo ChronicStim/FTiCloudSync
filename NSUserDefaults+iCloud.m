@@ -11,9 +11,8 @@
 //  To give credit, we suggest this text: "Uses FTiCloudSync by Ortwin Gentz", with a link to the GitHub page
 
 #import "NSUserDefaults+iCloud.h"
-
-#import "MethodSwizzling.h"
 #import "RegexKitLite.h"
+#import "JRSwizzle.h"
 
 NSString* const FTiCloudSyncDidUpdateNotification = @"FTiCloudSyncDidUpdateNotification";
 NSString* const FTiCloudSyncChangedKeys = @"changedKeys";
@@ -27,9 +26,33 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 +(void)load {
 	if(NSClassFromString(@"NSUbiquitousKeyValueStore")) { // is iOS 5?
         CPT_LOGDebug(@"[NSUserDefaults] Start +load swizzle methods");
-		Swizzle([NSUserDefaults class], @selector(setObject:forKey:), @selector(my_setObject:forKey:));
-		Swizzle([NSUserDefaults class], @selector(removeObjectForKey:), @selector(my_removeObjectForKey:));
-		Swizzle([NSUserDefaults class], @selector(synchronize), @selector(my_synchronize));
+        {
+            NSError *error = nil;
+            [NSUserDefaults jr_swizzleMethod:@selector(setObject:forKey:)
+                                  withMethod:@selector(my_setObject:forKey:)
+                                            error:&error];
+            if (nil != error) {
+                CPT_LOGError(@"Swizzle error. Code %i; %@; %@",error.code,error.localizedDescription,error.userInfo);
+            }
+        }
+        {
+            NSError *error = nil;
+            [NSUserDefaults jr_swizzleMethod:@selector(removeObjectForKey:)
+                                  withMethod:@selector(my_removeObjectForKey:)
+                                            error:&error];
+            if (nil != error) {
+                CPT_LOGError(@"Swizzle error. Code %i; %@; %@",error.code,error.localizedDescription,error.userInfo);
+            }
+        }
+        {
+            NSError *error = nil;
+            [NSUserDefaults jr_swizzleMethod:@selector(synchronize)
+                                  withMethod:@selector(my_synchronize)
+                                            error:&error];
+            if (nil != error) {
+                CPT_LOGError(@"Swizzle error. Code %i; %@; %@",error.code,error.localizedDescription,error.userInfo);
+            }
+        }
 
 		[[NSNotificationCenter defaultCenter] addObserver:self 
 												 selector:@selector(updateFromiCloud:) 
@@ -40,7 +63,10 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 
 + (void)updateFromiCloud:(NSNotification*)notificationObject {
     CPT_LOGDebug(@"Start +updateFromiCloud: with notificationObject: (%@) %@",[notificationObject class],[notificationObject debugDescription]);
-	if ([[[notificationObject userInfo] objectForKey:NSUbiquitousKeyValueStoreChangeReasonKey] intValue] == NSUbiquitousKeyValueStoreQuotaViolationChange) {
+    
+    NSNumber *reason = [[notificationObject userInfo] objectForKey:NSUbiquitousKeyValueStoreChangeReasonKey];
+    CPT_LOGDebug(@"NSUbiquitousKeyValueStore change reason key = %ld",(long)[reason integerValue]);
+	if ([reason intValue] == NSUbiquitousKeyValueStoreQuotaViolationChange) {
 		CPT_LOGError(@"NSUbiquitousKeyValueStoreQuotaViolationChange");
 	}
 	NSMutableArray *changedKeys = [NSMutableArray array];
@@ -65,6 +91,7 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 		}];
 		
 		[defaults my_synchronize];  // call original implementation (don't sync with iCloud again)
+        CPT_LOGDebug(@"updateFromiCloud: has changedKeys:%@ and removedKeys:%@",changedKeys,removedKeys);
 	}
     [[NSNotificationCenter defaultCenter] postNotificationName:FTiCloudSyncDidUpdateNotification
 														object:self
