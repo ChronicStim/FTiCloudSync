@@ -26,8 +26,7 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 #pragma mark - Swizzling to get a hook for iCloud
 +(void)load {
 	if(NSClassFromString(@"NSUbiquitousKeyValueStore")) { // is iOS 5?
-        CLSLog(@"[NSUserDefaults] Start +load swizzle methods");
-        DDLogVerbose(@"Starting to swizzle NSUserDefault methods");
+        CPT_LOGDebug(@"[NSUserDefaults] Start +load swizzle methods");
 		Swizzle([NSUserDefaults class], @selector(setObject:forKey:), @selector(my_setObject:forKey:));
 		Swizzle([NSUserDefaults class], @selector(removeObjectForKey:), @selector(my_removeObjectForKey:));
 		Swizzle([NSUserDefaults class], @selector(synchronize), @selector(my_synchronize));
@@ -40,7 +39,7 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 }
 
 + (void)updateFromiCloud:(NSNotification*)notificationObject {
-    CLSLog(@"Start +updateFromiCloud: with notificationObject: (%@) %@",[notificationObject class],[notificationObject debugDescription]);
+    CPT_LOGDebug(@"Start +updateFromiCloud: with notificationObject: (%@) %@",[notificationObject class],[notificationObject debugDescription]);
 	if ([[[notificationObject userInfo] objectForKey:NSUbiquitousKeyValueStoreChangeReasonKey] intValue] == NSUbiquitousKeyValueStoreQuotaViolationChange) {
 		CPT_LOGError(@"NSUbiquitousKeyValueStoreQuotaViolationChange");
 	}
@@ -74,12 +73,10 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 
 - (void)my_setObject:(id)object forKey:(NSString *)key {
     
-    CLSLog(@"[NSUserDefaults] Start my_setObject: %@ forKey %@", [object description], key);
-    DDLogVerbose(@"setObject: %@ forKey: %@", [object description], key);
+    CPT_LOGDebug(@"[NSUserDefaults] Start my_setObject: %@ forKey %@", [object description], key);
 
     if (nil == key) {
-        CLSLog(@"[NSUserDefaults] Error: Key for my_setObject:forKey: was nil for object: (%@)%@", NSStringFromClass([object class]),[object debugDescription]);
-        CPT_LOGError(@"Warning: A key for a NSUserDefault must never be nil. Key was nil for object: (%@)%@", NSStringFromClass([object class]),[object debugDescription]);
+        CPT_LOGError(@"[NSUserDefaults] Error: Key for my_setObject:forKey: was nil for object: (%@)%@", NSStringFromClass([object class]),[object debugDescription]);
         return;
     }
 
@@ -88,20 +85,17 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 	if (!equal && [key isMatchedByRegex:iCloudGreenlistRegex] && [NSUbiquitousKeyValueStore defaultStore]) {
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
 			[[NSUbiquitousKeyValueStore defaultStore] setObject:object forKey:key];
-            CLSLog(@"Just told NSUbiquitousKeyValueStore to setObject: %@ forKey: %@",object,key);
-            DDLogInfo(@"Just told NSUbiquitousKeyValueStore to setObject: %@ forKey: %@",object,key);
+            CPT_LOGDebug(@"Just told NSUbiquitousKeyValueStore to setObject: %@ forKey: %@",object,key);
 		});
 	}
 }
 
 - (void)my_removeObjectForKey:(NSString *)key {
     
-    CLSLog(@"[NSUserDefaults] Start my_removeObjectForKey: %@", key);
-    DDLogVerbose(@"RemoveObjectForKey: %@",key);
+    CPT_LOGDebug(@"[NSUserDefaults] Start my_removeObjectForKey: %@", key);
     
     if (nil == key) {
-        CLSLog(@"[NSUserDefaults] Error: Key for my_removeObjectForKey: was nil.");
-        CPT_LOGError(@"Warning: A key for a NSUserDefault must never be nil.");
+        CPT_LOGError(@"[NSUserDefaults] Error: Key for my_removeObjectForKey: was nil.");
         return;
     }
     
@@ -111,14 +105,13 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 	if (exists && [key isMatchedByRegex:iCloudGreenlistRegex] && [NSUbiquitousKeyValueStore defaultStore]) {
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
 			[[NSUbiquitousKeyValueStore defaultStore] removeObjectForKey:key];
-            CLSLog(@"Just told NSUbiquitousKeyValueStore to removeObjectForKey: %@",key);
-            DDLogInfo(@"Just told NSUbiquitousKeyValueStore to removeObjectForKey: %@",key);
+            CPT_LOGDebug(@"Just told NSUbiquitousKeyValueStore to removeObjectForKey: %@",key);
 		});
 	}
 }
 
 - (void)my_synchronize {
-    CLSLog(@"[NSUserDefaults] Start my_synchronize");
+    CPT_LOGDebug(@"[NSUserDefaults] Start my_synchronize");
 	[self my_synchronize]; // call original implementation
 	if ([NSUbiquitousKeyValueStore defaultStore]) {
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
