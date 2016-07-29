@@ -100,7 +100,7 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 
 - (void)my_setObject:(id)object forKey:(NSString *)key {
     
-    CPT_LOGDebug(@"[NSUserDefaults] Start my_setObject: %@ forKey %@", [object description], key);
+    //CPT_LOGDebug(@"[NSUserDefaults] Start my_setObject: %@ forKey %@", [object description], key);
 
     if (nil == key) {
         CPT_LOGError(@"[NSUserDefaults] Error: Key for my_setObject:forKey: was nil for object: (%@)%@", NSStringFromClass([object class]),[object debugDescription]);
@@ -138,7 +138,7 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 }
 
 - (void)my_synchronize {
-    CPT_LOGDebug(@"[NSUserDefaults] Start my_synchronize");
+    //CPT_LOGDebug(@"[NSUserDefaults] Start my_synchronize");
 	[self my_synchronize]; // call original implementation
 	if ([NSUbiquitousKeyValueStore defaultStore]) {
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
