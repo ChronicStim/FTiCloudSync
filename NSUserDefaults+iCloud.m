@@ -11,9 +11,8 @@
 //  To give credit, we suggest this text: "Uses FTiCloudSync by Ortwin Gentz", with a link to the GitHub page
 
 #import "NSUserDefaults+iCloud.h"
-
-#import "MethodSwizzling.h"
 #import "RegexKitLite.h"
+#import "JRSwizzle.h"
 
 NSString* const FTiCloudSyncDidUpdateNotification = @"FTiCloudSyncDidUpdateNotification";
 NSString* const FTiCloudSyncChangedKeys = @"changedKeys";
@@ -24,11 +23,36 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 @implementation NSUserDefaults(Additions)
 
 #pragma mark - Swizzling to get a hook for iCloud
-+(void)initialize {
++(void)load {
 	if(NSClassFromString(@"NSUbiquitousKeyValueStore")) { // is iOS 5?
-		Swizzle([NSUserDefaults class], @selector(setObject:forKey:), @selector(my_setObject:forKey:));
-		Swizzle([NSUserDefaults class], @selector(removeObjectForKey:), @selector(my_removeObjectForKey:));
-		Swizzle([NSUserDefaults class], @selector(synchronize), @selector(my_synchronize));
+        CPT_LOGDebug(@"[NSUserDefaults] Start +load swizzle methods");
+        {
+            NSError *error = nil;
+            [NSUserDefaults jr_swizzleMethod:@selector(setObject:forKey:)
+                                  withMethod:@selector(my_setObject:forKey:)
+                                            error:&error];
+            if (nil != error) {
+                CPT_LOGError(@"Swizzle error. Code %i; %@; %@",error.code,error.localizedDescription,error.userInfo);
+            }
+        }
+        {
+            NSError *error = nil;
+            [NSUserDefaults jr_swizzleMethod:@selector(removeObjectForKey:)
+                                  withMethod:@selector(my_removeObjectForKey:)
+                                            error:&error];
+            if (nil != error) {
+                CPT_LOGError(@"Swizzle error. Code %i; %@; %@",error.code,error.localizedDescription,error.userInfo);
+            }
+        }
+        {
+            NSError *error = nil;
+            [NSUserDefaults jr_swizzleMethod:@selector(synchronize)
+                                  withMethod:@selector(my_synchronize)
+                                            error:&error];
+            if (nil != error) {
+                CPT_LOGError(@"Swizzle error. Code %i; %@; %@",error.code,error.localizedDescription,error.userInfo);
+            }
+        }
 
 		[[NSNotificationCenter defaultCenter] addObserver:self 
 												 selector:@selector(updateFromiCloud:) 
@@ -38,8 +62,12 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 }
 
 + (void)updateFromiCloud:(NSNotification*)notificationObject {
-	if ([[[notificationObject userInfo] objectForKey:NSUbiquitousKeyValueStoreChangeReasonKey] intValue] == NSUbiquitousKeyValueStoreQuotaViolationChange) {
-		DDLogError(@"NSUbiquitousKeyValueStoreQuotaViolationChange");
+    CPT_LOGDebug(@"Start +updateFromiCloud: with notificationObject: (%@) %@",[notificationObject class],[notificationObject debugDescription]);
+    
+    NSNumber *reason = [[notificationObject userInfo] objectForKey:NSUbiquitousKeyValueStoreChangeReasonKey];
+    CPT_LOGDebug(@"NSUbiquitousKeyValueStore change reason key = %ld",(long)[reason integerValue]);
+	if ([reason intValue] == NSUbiquitousKeyValueStoreQuotaViolationChange) {
+		CPT_LOGError(@"NSUbiquitousKeyValueStoreQuotaViolationChange");
 	}
 	NSMutableArray *changedKeys = [NSMutableArray array];
 	NSMutableArray *removedKeys = nil;
@@ -63,6 +91,7 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 		}];
 		
 		[defaults my_synchronize];  // call original implementation (don't sync with iCloud again)
+        CPT_LOGDebug(@"updateFromiCloud: has changedKeys:%@ and removedKeys:%@",changedKeys,removedKeys);
 	}
     [[NSNotificationCenter defaultCenter] postNotificationName:FTiCloudSyncDidUpdateNotification
 														object:self
@@ -70,34 +99,51 @@ NSString* const iCloudGreenlistRegex = @"(^!Cloud)";
 }
 
 - (void)my_setObject:(id)object forKey:(NSString *)key {
+    
+    //CPT_LOGDebug(@"[NSUserDefaults] Start my_setObject: %@ forKey %@", [object description], key);
+
+    if (nil == key) {
+        CPT_LOGError(@"[NSUserDefaults] Error: Key for my_setObject:forKey: was nil for object: (%@)%@", NSStringFromClass([object class]),[object debugDescription]);
+        return;
+    }
+
 	BOOL equal = [[self objectForKey:key] isEqual:object];
-	[self my_setObject:object forKey:key];
+	[self my_setObject:object forKey:key]; // call original implementation
 	if (!equal && [key isMatchedByRegex:iCloudGreenlistRegex] && [NSUbiquitousKeyValueStore defaultStore]) {
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
 			[[NSUbiquitousKeyValueStore defaultStore] setObject:object forKey:key];
-            DDLogInfo(@"Just told NSUbiquitousKeyValueStore to setObject: %@ forKey: %@",object,key);
+            CPT_LOGDebug(@"Just told NSUbiquitousKeyValueStore to setObject: %@ forKey: %@",object,key);
 		});
 	}
 }
 
 - (void)my_removeObjectForKey:(NSString *)key {
+    
+    CPT_LOGDebug(@"[NSUserDefaults] Start my_removeObjectForKey: %@", key);
+    
+    if (nil == key) {
+        CPT_LOGError(@"[NSUserDefaults] Error: Key for my_removeObjectForKey: was nil.");
+        return;
+    }
+    
 	BOOL exists = !![self objectForKey:key];
 	[self my_removeObjectForKey:key]; // call original implementation
 	
 	if (exists && [key isMatchedByRegex:iCloudGreenlistRegex] && [NSUbiquitousKeyValueStore defaultStore]) {
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
 			[[NSUbiquitousKeyValueStore defaultStore] removeObjectForKey:key];
-            DDLogInfo(@"Just told NSUbiquitousKeyValueStore to removeObjectForKey: %@",key);
+            CPT_LOGDebug(@"Just told NSUbiquitousKeyValueStore to removeObjectForKey: %@",key);
 		});
 	}
 }
 
 - (void)my_synchronize {
+    //CPT_LOGDebug(@"[NSUserDefaults] Start my_synchronize");
 	[self my_synchronize]; // call original implementation
 	if ([NSUbiquitousKeyValueStore defaultStore]) {
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
 			if(![[NSUbiquitousKeyValueStore defaultStore] synchronize]) {
-				DDLogError(@"iCloud sync failed");
+				CPT_LOGError(@"iCloud sync failed");
 			}
 		});
 	}
