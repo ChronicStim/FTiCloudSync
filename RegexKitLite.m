@@ -966,7 +966,12 @@ exitNow:
   rkl_dtrace_addLookupFlag(lookupResultFlags, RKLErrorLookupFlag); 
   if(cachedRegex != NULL) { rkl_dtrace_utf16ConversionCache(lookupResultFlags, cachedRegex->setToString, cachedRegex->setToRange.location, cachedRegex->setToRange.length, cachedRegex->setToLength); }
 #endif // _RKL_DTRACE_ENABLED
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-bool-conversion"
     if (cachedRegex) { cachedRegex->buffer = NULL; cachedRegex->setToRange = NSNotFoundRange; cachedRegex->lastFindRange = NSNotFoundRange; cachedRegex->lastMatchRange = NSNotFoundRange; }
+#pragma GCC diagnostic pop
+
   return(0UL);
 }
 
