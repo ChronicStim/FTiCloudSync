@@ -967,12 +967,12 @@ exitNow:
   if(cachedRegex != NULL) { rkl_dtrace_utf16ConversionCache(lookupResultFlags, cachedRegex->setToString, cachedRegex->setToRange.location, cachedRegex->setToRange.length, cachedRegex->setToLength); }
 #endif // _RKL_DTRACE_ENABLED
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpointer-bool-conversion"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpointer-bool-conversion"
     if (cachedRegex) { cachedRegex->buffer = NULL; cachedRegex->setToRange = NSNotFoundRange; cachedRegex->lastFindRange = NSNotFoundRange; cachedRegex->lastMatchRange = NSNotFoundRange; }
-#pragma GCC diagnostic pop
-
-  return(0UL);
+#pragma clang diagnostic pop
+    
+    return(0UL);
 }
 
 //  IMPORTANT!   This code is critical path code.  Because of this, it has been written for speed, not clarity.
